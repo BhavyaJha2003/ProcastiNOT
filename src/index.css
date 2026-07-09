@@ -34,3 +34,8 @@ input, textarea, select {
   outline: none;
   border: none;
 }
+
+body.light {
+  background: #f0f2f5;
+  color: #111111;
+}

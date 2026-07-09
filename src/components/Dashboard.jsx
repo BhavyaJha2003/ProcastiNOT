@@ -2,8 +2,17 @@ import { useState } from 'react'
 import TaskCard from './TaskCard'
 import AISchedule from './AISchedule'
 
-export default function Dashboard({ tasks, onUpdateTask, onDeleteTask }) {
-  const [activeTab, setActiveTab] = useState('tasks')
+export default function Dashboard({ tasks, onUpdateTask, onDeleteTask, defaultTab, hideTabs, theme }) {
+  const [activeTab, setActiveTab] = useState(defaultTab || 'tasks')
+
+  const t = theme || {
+    card: '#1a1a35',
+    border: '#2a2a50',
+    text: '#e8e8ff',
+    subtext: '#8888bb',
+    accent1: '#6c63ff',
+    accent2: '#ff6584'
+  }
 
   const sortedTasks = [...tasks].sort((a, b) => {
     const scoreA = a.analysis?.priorityScore || 0
@@ -20,52 +29,97 @@ export default function Dashboard({ tasks, onUpdateTask, onDeleteTask }) {
   }).length
 
   return (
-    <div style={styles.container}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
       {/* Stats Row */}
-      <div style={styles.statsRow}>
-        <div style={styles.stat}>
-          <span style={styles.statNumber}>{tasks.length}</span>
-          <span style={styles.statLabel}>Total Tasks</span>
-        </div>
-        <div style={styles.stat}>
-          <span style={{ ...styles.statNumber, color: '#e91e63' }}>{criticalCount}</span>
-          <span style={styles.statLabel}>Critical</span>
-        </div>
-        <div style={styles.stat}>
-          <span style={{ ...styles.statNumber, color: '#ff5722' }}>{highCount}</span>
-          <span style={styles.statLabel}>High</span>
-        </div>
-        <div style={styles.stat}>
-          <span style={{ ...styles.statNumber, color: '#4caf50' }}>{doneCount}</span>
-          <span style={styles.statLabel}>Completed</span>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+        {[
+          { label: 'Total Tasks', value: tasks.length, color: t.accent1 },
+          { label: 'Critical', value: criticalCount, color: '#e91e63' },
+          { label: 'High', value: highCount, color: '#ff5722' },
+          { label: 'Completed', value: doneCount, color: '#4caf50' }
+        ].map(({ label, value, color }) => (
+          <div key={label} style={{
+            background: t.card,
+            borderRadius: '12px',
+            padding: '14px',
+            textAlign: 'center',
+            border: `1px solid ${t.border}`,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px'
+          }}>
+            <span style={{ fontSize: '1.6rem', fontWeight: '800', color }}>{value}</span>
+            <span style={{ fontSize: '0.75rem', color: t.subtext }}>{label}</span>
+          </div>
+        ))}
       </div>
 
       {/* Tabs */}
-      <div style={styles.tabs}>
-        <button
-          style={activeTab === 'tasks' ? styles.activeTab : styles.tab}
-          onClick={() => setActiveTab('tasks')}
-        >
-          📋 My Tasks
-        </button>
-        <button
-          style={activeTab === 'schedule' ? styles.activeTab : styles.tab}
-          onClick={() => setActiveTab('schedule')}
-        >
-          📅 AI Schedule
-        </button>
-      </div>
+      {!hideTabs && (
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            style={{
+              background: activeTab === 'tasks'
+                ? `linear-gradient(135deg, ${t.accent1}, ${t.accent2})`
+                : t.card,
+              color: activeTab === 'tasks' ? '#fff' : t.subtext,
+              border: activeTab === 'tasks' ? 'none' : `1px solid ${t.border}`,
+              borderRadius: '8px',
+              padding: '8px 18px',
+              fontSize: '0.88rem',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+            onClick={() => setActiveTab('tasks')}
+          >
+            📋 My Tasks
+          </button>
+          <button
+            style={{
+              background: activeTab === 'schedule'
+                ? `linear-gradient(135deg, ${t.accent1}, ${t.accent2})`
+                : t.card,
+              color: activeTab === 'schedule' ? '#fff' : t.subtext,
+              border: activeTab === 'schedule' ? 'none' : `1px solid ${t.border}`,
+              borderRadius: '8px',
+              padding: '8px 18px',
+              fontSize: '0.88rem',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+            onClick={() => setActiveTab('schedule')}
+          >
+            📅 AI Schedule
+          </button>
+        </div>
+      )}
 
       {/* Tasks Tab */}
       {activeTab === 'tasks' && (
-        <div style={styles.taskList}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '14px',
+          maxHeight: '70vh',
+          overflowY: 'auto',
+          paddingRight: '4px'
+        }}>
           {sortedTasks.length === 0 ? (
-            <div style={styles.empty}>
-              <p style={styles.emptyIcon}>🎯</p>
-              <p style={styles.emptyText}>No tasks yet!</p>
-              <p style={styles.emptySubtext}>Add a task on the left and let AI prioritize it for you.</p>
+            <div style={{
+              textAlign: 'center',
+              padding: '60px 20px',
+              background: t.card,
+              borderRadius: '14px',
+              border: `1px dashed ${t.border}`
+            }}>
+              <p style={{ fontSize: '3rem', marginBottom: '12px' }}>🎯</p>
+              <p style={{ fontSize: '1.1rem', fontWeight: '700', color: t.text, marginBottom: '8px' }}>
+                No tasks yet!
+              </p>
+              <p style={{ fontSize: '0.88rem', color: t.subtext }}>
+                Add a task on the left and let AI prioritize it for you.
+              </p>
             </div>
           ) : (
             sortedTasks.map(task => (
@@ -74,6 +128,7 @@ export default function Dashboard({ tasks, onUpdateTask, onDeleteTask }) {
                 task={task}
                 onUpdateTask={onUpdateTask}
                 onDeleteTask={onDeleteTask}
+                theme={t}
               />
             ))
           )}
@@ -82,93 +137,8 @@ export default function Dashboard({ tasks, onUpdateTask, onDeleteTask }) {
 
       {/* Schedule Tab */}
       {activeTab === 'schedule' && (
-        <AISchedule tasks={tasks} />
+        <AISchedule tasks={tasks} theme={t} />
       )}
     </div>
   )
-}
-
-const styles = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px'
-  },
-  statsRow: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '12px'
-  },
-  stat: {
-    background: '#1a1a2e',
-    borderRadius: '12px',
-    padding: '14px',
-    textAlign: 'center',
-    border: '1px solid #2a2a4a',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px'
-  },
-  statNumber: {
-    fontSize: '1.6rem',
-    fontWeight: '800',
-    color: '#6c63ff'
-  },
-  statLabel: {
-    fontSize: '0.75rem',
-    color: '#888'
-  },
-  tabs: {
-    display: 'flex',
-    gap: '8px'
-  },
-  tab: {
-    background: '#1a1a2e',
-    color: '#888',
-    border: '1px solid #2a2a4a',
-    borderRadius: '8px',
-    padding: '8px 18px',
-    fontSize: '0.88rem',
-    fontWeight: '600',
-    cursor: 'pointer'
-  },
-  activeTab: {
-    background: 'linear-gradient(135deg, #6c63ff, #ff6584)',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    padding: '8px 18px',
-    fontSize: '0.88rem',
-    fontWeight: '600',
-    cursor: 'pointer'
-  },
-  taskList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '14px',
-    maxHeight: '70vh',
-    overflowY: 'auto',
-    paddingRight: '4px'
-  },
-  empty: {
-    textAlign: 'center',
-    padding: '60px 20px',
-    background: '#1a1a2e',
-    borderRadius: '14px',
-    border: '1px dashed #2a2a4a'
-  },
-  emptyIcon: {
-    fontSize: '3rem',
-    marginBottom: '12px'
-  },
-  emptyText: {
-    fontSize: '1.1rem',
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: '8px'
-  },
-  emptySubtext: {
-    fontSize: '0.88rem',
-    color: '#666'
-  }
 }

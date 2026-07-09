@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { generateActionPlan } from '../utils/gemini'
 import ActionPlan from './ActionPlan'
+import PomodoroTimer from './PomodoroTimer'
 
 const urgencyColors = {
   Low: '#4caf50',
@@ -9,12 +10,22 @@ const urgencyColors = {
   Critical: '#e91e63'
 }
 
-export default function TaskCard({ task, onUpdateTask, onDeleteTask }) {
+export default function TaskCard({ task, onUpdateTask, onDeleteTask, theme }) {
   const [expanded, setExpanded] = useState(false)
   const [actionPlan, setActionPlan] = useState(null)
   const [loadingPlan, setLoadingPlan] = useState(false)
 
-  const urgencyColor = urgencyColors[task.analysis?.urgencyLevel] || '#6c63ff'
+  const t = theme || {
+    card: '#1a1a35',
+    border: '#2a2a50',
+    text: '#e8e8ff',
+    subtext: '#8888bb',
+    input: '#0d0d22',
+    accent1: '#6c63ff',
+    accent2: '#ff6584'
+  }
+
+  const urgencyColor = urgencyColors[task.analysis?.urgencyLevel] || t.accent1
 
   const toggleSubtask = (id) => {
     const updatedSubtasks = task.subtasks.map(s =>
@@ -48,78 +59,139 @@ export default function TaskCard({ task, onUpdateTask, onDeleteTask }) {
   )
 
   return (
-    <div style={styles.card}>
+    <div style={{
+      background: t.card,
+      borderRadius: '14px',
+      padding: '20px',
+      border: `1px solid ${t.border}`,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px'
+    }}>
       {/* Header */}
-      <div style={styles.header}>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
         <div style={{ flex: 1 }}>
-          <div style={styles.topRow}>
-            <span
-              style={{
-                ...styles.urgencyBadge,
-                background: urgencyColor + '22',
-                color: urgencyColor,
-                border: `1px solid ${urgencyColor}`
-              }}
-            >
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
+            <span style={{
+              fontSize: '0.75rem',
+              fontWeight: '700',
+              padding: '3px 10px',
+              borderRadius: '20px',
+              background: urgencyColor + '22',
+              color: urgencyColor,
+              border: `1px solid ${urgencyColor}`
+            }}>
               {task.analysis?.urgencyLevel || 'Analyzing...'}
             </span>
-            <span style={styles.score}>
+            <span style={{ fontSize: '0.8rem', color: t.accent1, fontWeight: '600' }}>
               ⚡ {task.analysis?.priorityScore}/10
             </span>
           </div>
-          <h3 style={styles.taskName}>{task.name}</h3>
-          <p style={styles.deadline}>
+          <h3 style={{ fontSize: '1.05rem', fontWeight: '700', color: t.text, marginBottom: '4px' }}>
+            {task.name}
+          </h3>
+          <p style={{ fontSize: '0.82rem', color: t.subtext }}>
             📅 {task.deadline} &nbsp;·&nbsp;
-            <span style={{ color: daysLeft <= 2 ? '#ff6584' : '#aaa' }}>
+            <span style={{ color: daysLeft <= 2 ? t.accent2 : t.subtext }}>
               {daysLeft <= 0 ? '⚠️ Overdue!' : `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`}
             </span>
           </p>
         </div>
-        <button style={styles.deleteBtn} onClick={() => onDeleteTask(task.id)}>✕</button>
+        <button
+          style={{
+            background: t.border,
+            color: t.subtext,
+            border: 'none',
+            borderRadius: '6px',
+            width: '28px',
+            height: '28px',
+            cursor: 'pointer',
+            fontSize: '0.8rem',
+            flexShrink: 0
+          }}
+          onClick={() => onDeleteTask(task.id)}
+        >✕</button>
       </div>
 
       {/* Reasoning */}
       {task.analysis?.reasoning && (
-        <p style={styles.reasoning}>💡 {task.analysis.reasoning}</p>
+        <p style={{
+          fontSize: '0.85rem',
+          color: t.subtext,
+          background: t.input,
+          padding: '10px 14px',
+          borderRadius: '8px',
+          lineHeight: '1.5'
+        }}>
+          💡 {task.analysis.reasoning}
+        </p>
       )}
 
       {/* Progress Bar */}
       {totalCount > 0 && (
-        <div style={styles.progressSection}>
-          <div style={styles.progressLabel}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: t.subtext }}>
             <span>Progress</span>
             <span>{completedCount}/{totalCount} subtasks</span>
           </div>
-          <div style={styles.progressBar}>
-            <div style={{ ...styles.progressFill, width: `${progress}%` }} />
+          <div style={{ background: t.input, borderRadius: '10px', height: '6px', overflow: 'hidden' }}>
+            <div style={{
+              background: `linear-gradient(90deg, ${t.accent1}, ${t.accent2})`,
+              height: '100%',
+              borderRadius: '10px',
+              width: `${progress}%`,
+              transition: 'width 0.4s ease'
+            }} />
           </div>
         </div>
       )}
 
       {/* Toggle Subtasks */}
-      <button style={styles.toggleBtn} onClick={() => setExpanded(!expanded)}>
+      <button
+        style={{
+          background: 'transparent',
+          color: t.accent1,
+          fontSize: '0.82rem',
+          fontWeight: '600',
+          cursor: 'pointer',
+          textAlign: 'left',
+          padding: '0',
+          border: 'none'
+        }}
+        onClick={() => setExpanded(!expanded)}
+      >
         {expanded ? '▲ Hide Subtasks' : '▼ Show Subtasks'}
       </button>
 
       {/* Subtasks */}
       {expanded && (
-        <div style={styles.subtasks}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {task.subtasks?.map(subtask => (
-            <div key={subtask.id} style={styles.subtask}>
+            <div key={subtask.id} style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              background: t.input,
+              padding: '8px 12px',
+              borderRadius: '8px'
+            }}>
               <input
                 type="checkbox"
                 checked={subtask.done}
                 onChange={() => toggleSubtask(subtask.id)}
-                style={styles.checkbox}
+                style={{ accentColor: t.accent1, width: '16px', height: '16px', cursor: 'pointer' }}
               />
               <span style={{
-                ...styles.subtaskTitle,
+                fontSize: '0.88rem',
+                flex: 1,
                 textDecoration: subtask.done ? 'line-through' : 'none',
-                color: subtask.done ? '#555' : '#ddd'
+                color: subtask.done ? t.subtext : t.text
               }}>
                 {subtask.title}
               </span>
-              <span style={styles.subtaskTime}>⏱ {subtask.estimatedMinutes}m</span>
+              <span style={{ fontSize: '0.78rem', color: t.subtext }}>
+                ⏱ {subtask.estimatedMinutes}m
+              </span>
             </div>
           ))}
         </div>
@@ -127,7 +199,16 @@ export default function TaskCard({ task, onUpdateTask, onDeleteTask }) {
 
       {/* Action Plan Button */}
       <button
-        style={styles.actionBtn}
+        style={{
+          background: t.accent1 + '22',
+          color: t.accent1,
+          border: `1px solid ${t.accent1}`,
+          borderRadius: '8px',
+          padding: '8px 14px',
+          fontSize: '0.85rem',
+          fontWeight: '600',
+          cursor: 'pointer'
+        }}
         onClick={handleActionPlan}
         disabled={loadingPlan}
       >
@@ -135,139 +216,10 @@ export default function TaskCard({ task, onUpdateTask, onDeleteTask }) {
       </button>
 
       {/* Action Plan */}
-      {actionPlan && <ActionPlan plan={actionPlan} />}
+      {actionPlan && <ActionPlan plan={actionPlan} theme={t} />}
+
+      {/* Pomodoro Timer */}
+      <PomodoroTimer taskName={task.name} theme={t} />
     </div>
   )
-}
-
-const styles = {
-  card: {
-    background: '#1a1a2e',
-    borderRadius: '14px',
-    padding: '20px',
-    border: '1px solid #2a2a4a',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px'
-  },
-  header: {
-    display: 'flex',
-    gap: '12px',
-    alignItems: 'flex-start'
-  },
-  topRow: {
-    display: 'flex',
-    gap: '8px',
-    alignItems: 'center',
-    marginBottom: '6px'
-  },
-  urgencyBadge: {
-    fontSize: '0.75rem',
-    fontWeight: '700',
-    padding: '3px 10px',
-    borderRadius: '20px'
-  },
-  score: {
-    fontSize: '0.8rem',
-    color: '#6c63ff',
-    fontWeight: '600'
-  },
-  taskName: {
-    fontSize: '1.05rem',
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: '4px'
-  },
-  deadline: {
-    fontSize: '0.82rem',
-    color: '#aaa'
-  },
-  deleteBtn: {
-    background: '#2a2a4a',
-    color: '#888',
-    border: 'none',
-    borderRadius: '6px',
-    width: '28px',
-    height: '28px',
-    cursor: 'pointer',
-    fontSize: '0.8rem',
-    flexShrink: 0
-  },
-  reasoning: {
-    fontSize: '0.85rem',
-    color: '#aaa',
-    background: '#0f0f1a',
-    padding: '10px 14px',
-    borderRadius: '8px',
-    lineHeight: '1.5'
-  },
-  progressSection: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px'
-  },
-  progressLabel: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    fontSize: '0.8rem',
-    color: '#888'
-  },
-  progressBar: {
-    background: '#0f0f1a',
-    borderRadius: '10px',
-    height: '6px',
-    overflow: 'hidden'
-  },
-  progressFill: {
-    background: 'linear-gradient(90deg, #6c63ff, #ff6584)',
-    height: '100%',
-    borderRadius: '10px',
-    transition: 'width 0.4s ease'
-  },
-  toggleBtn: {
-    background: 'transparent',
-    color: '#6c63ff',
-    fontSize: '0.82rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-    textAlign: 'left',
-    padding: '0'
-  },
-  subtasks: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px'
-  },
-  subtask: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    background: '#0f0f1a',
-    padding: '8px 12px',
-    borderRadius: '8px'
-  },
-  checkbox: {
-    accentColor: '#6c63ff',
-    width: '16px',
-    height: '16px',
-    cursor: 'pointer'
-  },
-  subtaskTitle: {
-    fontSize: '0.88rem',
-    flex: 1
-  },
-  subtaskTime: {
-    fontSize: '0.78rem',
-    color: '#666'
-  },
-  actionBtn: {
-    background: 'linear-gradient(135deg, #6c63ff22, #ff658422)',
-    color: '#6c63ff',
-    border: '1px solid #6c63ff',
-    borderRadius: '8px',
-    padding: '8px 14px',
-    fontSize: '0.85rem',
-    fontWeight: '600',
-    cursor: 'pointer'
-  }
 }

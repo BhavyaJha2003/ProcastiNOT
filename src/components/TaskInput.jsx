@@ -8,10 +8,20 @@ const initialForm = {
   description: ''
 }
 
-export default function TaskInput({ onAddTask }) {
+export default function TaskInput({ onAddTask, theme }) {
   const [form, setForm] = useState(initialForm)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const t = theme || {
+    card: '#1a1a35',
+    border: '#2a2a50',
+    text: '#e8e8ff',
+    subtext: '#8888bb',
+    input: '#0d0d22',
+    accent1: '#6c63ff',
+    accent2: '#ff6584'
+  }
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
@@ -26,10 +36,24 @@ export default function TaskInput({ onAddTask }) {
     setError('')
     setLoading(true)
 
+    const retry = async (fn, retries = 3, delay = 5000) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          return await fn()
+        } catch (err) {
+          if (i < retries - 1) {
+            await new Promise(res => setTimeout(res, delay))
+          } else {
+            throw err
+          }
+        }
+      }
+    }
+
     try {
       const [analysis, subtasks] = await Promise.all([
-        analyzeTask(form),
-        breakIntoSubtasks(form)
+        retry(() => analyzeTask(form)),
+        retry(() => breakIntoSubtasks(form))
       ])
 
       const newTask = {
@@ -43,21 +67,43 @@ export default function TaskInput({ onAddTask }) {
       onAddTask(newTask)
       setForm(initialForm)
     } catch (err) {
-      setError('AI analysis failed. Please try again in a moment.')
+      setError('AI analysis failed. Please wait 1 minute and try again.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>➕ Add New Task</h2>
+    <div style={{
+      background: t.card,
+      borderRadius: '16px',
+      padding: '24px',
+      border: `1px solid ${t.border}`,
+      height: 'fit-content'
+    }}>
+      <h2 style={{
+        fontSize: '1.2rem',
+        fontWeight: '700',
+        marginBottom: '20px',
+        color: t.text
+      }}>➕ Add New Task</h2>
 
-      <form onSubmit={handleSubmit} style={styles.form}>
-        <div style={styles.field}>
-          <label style={styles.label}>Task Name *</label>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <label style={{ fontSize: '0.85rem', color: t.subtext, fontWeight: '500' }}>
+            Task Name *
+          </label>
           <input
-            style={styles.input}
+            style={{
+              background: t.input,
+              border: `1px solid ${t.border}`,
+              borderRadius: '8px',
+              padding: '10px 14px',
+              color: t.text,
+              fontSize: '0.95rem',
+              width: '100%'
+            }}
             type="text"
             name="name"
             placeholder="e.g. Submit project report"
@@ -66,10 +112,20 @@ export default function TaskInput({ onAddTask }) {
           />
         </div>
 
-        <div style={styles.field}>
-          <label style={styles.label}>Deadline *</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <label style={{ fontSize: '0.85rem', color: t.subtext, fontWeight: '500' }}>
+            Deadline *
+          </label>
           <input
-            style={styles.input}
+            style={{
+              background: t.input,
+              border: `1px solid ${t.border}`,
+              borderRadius: '8px',
+              padding: '10px 14px',
+              color: t.text,
+              fontSize: '0.95rem',
+              width: '100%'
+            }}
             type="date"
             name="deadline"
             value={form.deadline}
@@ -77,10 +133,20 @@ export default function TaskInput({ onAddTask }) {
           />
         </div>
 
-        <div style={styles.field}>
-          <label style={styles.label}>Priority</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <label style={{ fontSize: '0.85rem', color: t.subtext, fontWeight: '500' }}>
+            Priority
+          </label>
           <select
-            style={styles.input}
+            style={{
+              background: t.input,
+              border: `1px solid ${t.border}`,
+              borderRadius: '8px',
+              padding: '10px 14px',
+              color: t.text,
+              fontSize: '0.95rem',
+              width: '100%'
+            }}
             name="priority"
             value={form.priority}
             onChange={handleChange}
@@ -92,10 +158,22 @@ export default function TaskInput({ onAddTask }) {
           </select>
         </div>
 
-        <div style={styles.field}>
-          <label style={styles.label}>Description (optional)</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <label style={{ fontSize: '0.85rem', color: t.subtext, fontWeight: '500' }}>
+            Description (optional)
+          </label>
           <textarea
-            style={{ ...styles.input, height: '80px', resize: 'vertical' }}
+            style={{
+              background: t.input,
+              border: `1px solid ${t.border}`,
+              borderRadius: '8px',
+              padding: '10px 14px',
+              color: t.text,
+              fontSize: '0.95rem',
+              width: '100%',
+              height: '80px',
+              resize: 'vertical'
+            }}
             name="description"
             placeholder="Add more context about this task..."
             value={form.description}
@@ -103,11 +181,25 @@ export default function TaskInput({ onAddTask }) {
           />
         </div>
 
-        {error && <p style={styles.error}>{error}</p>}
+        {error && (
+          <p style={{ color: t.accent2, fontSize: '0.85rem' }}>{error}</p>
+        )}
 
         <button
           type="submit"
-          style={loading ? { ...styles.button, opacity: 0.7 } : styles.button}
+          style={{
+            background: `linear-gradient(135deg, ${t.accent1}, ${t.accent2})`,
+            color: '#fff',
+            padding: '12px',
+            borderRadius: '10px',
+            fontSize: '1rem',
+            fontWeight: '700',
+            marginTop: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            opacity: loading ? 0.7 : 1,
+            transition: 'opacity 0.2s'
+          }}
           disabled={loading}
         >
           {loading ? '🤖 AI is analyzing...' : '🚀 Add & Analyze Task'}
@@ -115,58 +207,4 @@ export default function TaskInput({ onAddTask }) {
       </form>
     </div>
   )
-}
-
-const styles = {
-  container: {
-    background: '#1a1a2e',
-    borderRadius: '16px',
-    padding: '24px',
-    border: '1px solid #2a2a4a',
-    height: 'fit-content'
-  },
-  title: {
-    fontSize: '1.2rem',
-    fontWeight: '700',
-    marginBottom: '20px',
-    color: '#fff'
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px'
-  },
-  field: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px'
-  },
-  label: {
-    fontSize: '0.85rem',
-    color: '#aaa',
-    fontWeight: '500'
-  },
-  input: {
-    background: '#0f0f1a',
-    border: '1px solid #2a2a4a',
-    borderRadius: '8px',
-    padding: '10px 14px',
-    color: '#fff',
-    fontSize: '0.95rem',
-    width: '100%'
-  },
-  button: {
-    background: 'linear-gradient(135deg, #6c63ff, #ff6584)',
-    color: '#fff',
-    padding: '12px',
-    borderRadius: '10px',
-    fontSize: '1rem',
-    fontWeight: '700',
-    marginTop: '8px',
-    transition: 'opacity 0.2s'
-  },
-  error: {
-    color: '#ff6584',
-    fontSize: '0.85rem'
-  }
 }
